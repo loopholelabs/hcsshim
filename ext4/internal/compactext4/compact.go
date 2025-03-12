@@ -105,6 +105,7 @@ const (
 	BlockSize               = 4096
 	blocksPerGroup          = uint32(BlockSize * 8)
 	inodeSize               = 256
+	freeSpaceInodeSize      = 16384         // Use bigger inode size since free space can be quite large
 	maxInodesPerGroup       = BlockSize * 8 // Limited by the inode bitmap
 	inodesPerGroupIncrement = BlockSize / inodeSize
 
@@ -1245,9 +1246,10 @@ func (w *Writer) Close() error {
 
 	// Calculate the new disk size by adding extraBlocks (which could be 0)
 	diskSize := validDataSize + extraBlocks
+	inodeCount := uint32(len(w.inodes)) + uint32(w.freeSpace/freeSpaceInodeSize)
 
 	// Recalculate groups and inodesPerGroup based on the new diskSize
-	groups, inodesPerGroup := bestGroupCount(diskSize, uint32(len(w.inodes)))
+	groups, inodesPerGroup := bestGroupCount(diskSize, inodeCount)
 
 	// Write the inode table
 	err := w.writeInodeTable(groups * inodesPerGroup * inodeSize)
